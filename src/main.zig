@@ -32,15 +32,23 @@ test "poc" {
         .a = &slice.max_length(3),
         .b = &scalar.min(3),
     };
+
     const Data = struct {
         a: []const u8,
         b: u8,
     };
+
     const d = Data{
         .a = "ab",
         .b = 4,
     };
+    const d2 = Data{
+        .a = "ab",
+        .b = 2,
+    };
+
     try testing.expect(validate(vd, d) == true);
+    try testing.expect(validate(vd, d2) == false);
 }
 
 fn fields(comptime T: type) [][]const u8 {
