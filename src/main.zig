@@ -29,8 +29,8 @@ test "poc" {
     };
 
     const vd = ValidateData{
-        .a = &(slice.max_length(3)),
-        .b = &(scalar.min(3)),
+        .a = &slice.max_length(3),
+        .b = &scalar.min(3),
     };
     const Data = struct {
         a: []const u8,
