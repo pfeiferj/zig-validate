@@ -30,10 +30,11 @@ test "poc blah" {
     };
 
     comptime var a_val = [_]*const Validator{ &slice.min_length(1), &slice.max_length(3) };
+    comptime var b_val = [_]*const Validator{ &scalar.min(3), &scalar.max(7) };
 
     comptime var vd = ValidateData{
         .a = &combinator._and(&a_val),
-        .b = &scalar.min(3),
+        .b = &combinator._and(&b_val),
     };
 
     comptime var Data = struct {
