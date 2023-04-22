@@ -3,6 +3,7 @@ const testing = std.testing;
 const slice = @import("slice.zig");
 const scalar = @import("scalar.zig");
 const Validator = @import("validator.zig").Validator;
+const combinator = @import("combinator.zig");
 
 pub fn validate(v: anytype, comptime d: anytype) bool {
     comptime var vt = @typeInfo(@TypeOf(v));
@@ -28,8 +29,10 @@ test "poc blah" {
         b: *const Validator,
     };
 
+    comptime var a_val = [_]*const Validator{ &slice.min_length(1), &slice.max_length(3) };
+
     comptime var vd = ValidateData{
-        .a = &slice.max_length(3),
+        .a = &combinator._and(&a_val),
         .b = &scalar.min(3),
     };
 
