@@ -16,6 +16,11 @@ pub fn validate(comptime D: type, comptime v: anytype, d: D) bool {
             inline for (fds) |field| {
                 const data = @field(d, field);
                 comptime var dt = @TypeOf(data);
+                comptime var ti = @typeInfo(dt);
+                if (ti == .Struct) {
+                    valid = valid and validate(dt, @field(v, field), data);
+                    continue;
+                }
                 const fieldValid = @field(v, field).call(dt, data);
                 valid = valid and fieldValid;
             }
@@ -26,34 +31,27 @@ pub fn validate(comptime D: type, comptime v: anytype, d: D) bool {
 }
 
 test "validate example" {
-    comptime var ValidateData = struct {
-        a: *const Validator,
-        b: *const Validator,
-        c: *const Validator,
-    };
+    comptime var ValidateData = struct { a: *const Validator, b: *const Validator, c: struct {
+        d: *const Validator,
+    } };
 
-    comptime var vd = ValidateData{
-        .a = &slice.regex_match("ao.*"),
-        .b = &combinator._and(&.{ &scalar.min(u8, 3), &scalar.max(u8, 7) }),
-        .c = &combinator._or(&.{ &slice.min_length(3), &slice.equals(&[_]u32{ 1, 2 }) }),
-    };
+    comptime var vd = ValidateData{ .a = &slice.regex_match("ao.*"), .b = &combinator._and(&.{ &scalar.min(u8, 3), &scalar.max(u8, 7) }), .c = .{
+        .d = &combinator._or(&.{ &slice.min_length(3), &slice.equals(&[_]u32{ 1, 2 }) }),
+    } };
 
-    comptime var Data = struct {
-        a: [:0]const u8,
-        b: u8,
-        c: []const u32,
-    };
+    comptime var Data = struct { a: [:0]const u8, b: u8, c: struct {
+        d: []const u32,
+        e: []const f32,
+    } };
 
-    const d = Data{
-        .a = "aoeu",
-        .b = 4,
-        .c = &[_]u32{ 1, 2 },
-    };
-    const d2 = Data{
-        .a = "aolrcoeu",
-        .b = 3,
-        .c = &[_]u32{1},
-    };
+    const d = Data{ .a = "aoeu", .b = 4, .c = .{
+        .d = &[_]u32{ 1, 2 },
+        .e = &[_]f32{ 1, 2 },
+    } };
+    const d2 = Data{ .a = "aolrcoeu", .b = 3, .c = .{
+        .d = &[_]u32{1},
+        .e = &[_]f32{1},
+    } };
 
     try testing.expect(validate(Data, vd, d) == true);
     try testing.expect(validate(Data, vd, d2) == false);
