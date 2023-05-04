@@ -24,6 +24,10 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    lib.linkLibC();
+    lib.addSystemIncludePath("src");
+    lib.addCSourceFile("src/re.c", &[_][]const u8{"-std=c99"});
+
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
@@ -36,6 +40,9 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    main_tests.linkLibC();
+    main_tests.addSystemIncludePath("src");
+    main_tests.addCSourceFile("src/re.c", &[_][]const u8{"-std=c99"});
 
     const run_main_tests = b.addRunArtifact(main_tests);
 

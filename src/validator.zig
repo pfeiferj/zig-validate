@@ -5,7 +5,9 @@ const combinator = @import("./combinator.zig");
 pub const Validator = union(enum) {
     max_length: slice.MaxLength,
     min_length: slice.MinLength,
+    regex_match: slice.RegexMatch,
     slice_equals: slice.Equals,
+    scalar_equals: scalar.Equals,
     min: scalar.Min,
     max: scalar.Max,
     _and: combinator.And,

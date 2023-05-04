@@ -32,21 +32,21 @@ test "poc blah" {
     };
 
     comptime var vd = ValidateData{
-        .a = &slice.equals(&[_]u32{ 1, 2, 3 }),
+        .a = &slice.regex_match("ao.*"),
         .b = &combinator._and(&.{ &scalar.min(u8, 3), &scalar.max(u8, 7) }),
     };
 
     comptime var Data = struct {
-        a: []const u32,
+        a: [:0]const u8,
         b: u8,
     };
 
     const d = Data{
-        .a = &[_]u32{ 1, 2, 3 },
+        .a = "aoeu",
         .b = 4,
     };
     const d2 = Data{
-        .a = &[_]u32{ 1, 2, 3 },
+        .a = "aolrcoeu",
         .b = 2,
     };
 

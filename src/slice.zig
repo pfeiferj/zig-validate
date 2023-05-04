@@ -1,4 +1,5 @@
 const v = @import("./validator.zig");
+const re = @cImport(@cInclude("re.h"));
 
 fn isSlice(comptime data: type) bool {
     const t = @typeInfo(data);
@@ -55,5 +56,24 @@ pub const Equals = struct {
         }
 
         return true;
+    }
+};
+
+pub fn regex_match(expression: anytype) v.Validator {
+    const r = v.Validator{ .regex_match = RegexMatch{ .expression = expression } };
+    return r;
+}
+
+pub const RegexMatch = struct {
+    expression: [:0]const u8,
+
+    pub fn call(self: @This(), comptime D: type, data: D) bool {
+        if (!comptime isSlice(D)) return false;
+        var c_data = @ptrCast([:0]const u8, data);
+
+        var match_length: c_int = 0;
+        var match_idx: isize = re.re_match(self.expression, c_data, &match_length);
+
+        return match_idx != -1;
     }
 };
