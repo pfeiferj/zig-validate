@@ -18,10 +18,10 @@ pub fn _and(validators: anytype) v.Validator {
 }
 
 pub const Or = struct {
-    validators: []*v.Validator,
+    validators: []*const v.Validator,
 
     pub fn call(self: @This(), comptime D: type, data: D) bool {
-        var valid = true;
+        var valid = false;
         for (self.validators) |validator| {
             valid = valid or validator.call(D, data);
         }
@@ -35,7 +35,7 @@ pub fn _or(validators: anytype) v.Validator {
 }
 
 pub const XOr = struct {
-    validators: []*v.Validator,
+    validators: []*const v.Validator,
 
     pub fn call(self: @This(), comptime D: type, data: D) bool {
         var valid = false;

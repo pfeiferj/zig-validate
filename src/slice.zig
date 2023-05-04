@@ -69,6 +69,8 @@ pub const RegexMatch = struct {
 
     pub fn call(self: @This(), comptime D: type, data: D) bool {
         if (!comptime isSlice(D)) return false;
+        comptime var t = @typeInfo(D);
+        if (t.Pointer.child != u8) return false;
         var c_data = @ptrCast([:0]const u8, data);
 
         var match_length: c_int = 0;
