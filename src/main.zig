@@ -31,12 +31,9 @@ test "poc blah" {
         b: *const Validator,
     };
 
-    //comptime var a_val = [_]*const Validator{ &slice.min_length(1), &slice.max_length(3), &slice.equals("ao") };
-    comptime var b_val = [_]*const Validator{ &scalar.min(@as(u8, 3)), &scalar.max(@as(u8, 7)) };
-
     comptime var vd = ValidateData{
         .a = &slice.equals(&[_]u32{ 1, 2, 3 }),
-        .b = &combinator._and(&b_val),
+        .b = &combinator._and(&.{ &scalar.min(u8, 3), &scalar.max(u8, 7) }),
     };
 
     comptime var Data = struct {
