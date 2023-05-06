@@ -3,6 +3,7 @@ const testing = std.testing;
 const slice = @import("slice.zig");
 const scalar = @import("scalar.zig");
 const combinator = @import("combinator.zig");
+const log = @import("log.zig");
 
 pub fn validate(comptime v: anytype, d: anytype) bool {
     comptime var vt = @typeInfo(@TypeOf(v));
@@ -34,7 +35,7 @@ test "validate example" {
         .b = combinator._and(.{ scalar.min(3), scalar.max(7.2) }),
         .c = .{
             .d = scalar.equals(true),
-            .e = slice.min_length(3),
+            .e = log.failure(slice.min_length(3), std.log.err, "String must be at least 3 characters."),
         },
     };
 
