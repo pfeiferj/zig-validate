@@ -1,69 +1,78 @@
-const v = @import("./validator.zig");
+const std = @import("std");
+const testing = std.testing;
 
-pub const And = struct {
-    validators: []*const v.Validator,
+pub fn And(comptime T: type) type {
+    return comptime struct {
+        validators: T,
 
-    pub fn call(self: @This(), comptime D: type, data: D) bool {
-        var valid = true;
-        for (self.validators) |validator| {
-            valid = valid and validator.call(D, data);
-        }
-        return valid;
-    }
-};
-
-pub fn _and(validators: anytype) v.Validator {
-    const ml = v.Validator{ ._and = And{ .validators = @constCast(@as(*const [validators.len]*const v.Validator, validators)) } };
-    return ml;
-}
-
-pub const Or = struct {
-    validators: []*const v.Validator,
-
-    pub fn call(self: @This(), comptime D: type, data: D) bool {
-        var valid = false;
-        for (self.validators) |validator| {
-            valid = valid or validator.call(D, data);
-        }
-        return valid;
-    }
-};
-
-pub fn _or(validators: anytype) v.Validator {
-    const ml = v.Validator{ ._or = Or{ .validators = @constCast(@as(*const [validators.len]*const v.Validator, validators)) } };
-    return ml;
-}
-
-pub const XOr = struct {
-    validators: []*const v.Validator,
-
-    pub fn call(self: @This(), comptime D: type, data: D) bool {
-        var valid = false;
-        for (self.validators) |validator| {
-            if (valid) {
-                valid = valid and !validator.call(D, data);
-            } else {
-                valid = valid or validator.call(D, data);
+        pub fn call(comptime self: @This(), data: anytype) bool {
+            inline for (self.validators) |validator| {
+                if (!validator.call(data)) {
+                    return false;
+                }
             }
+            return true;
         }
-        return valid;
-    }
-};
-
-pub fn _xor(validators: anytype) v.Validator {
-    const ml = v.Validator{ ._xor = XOr{ .validators = @constCast(@as(*const [validators.len]*const v.Validator, validators)) } };
-    return ml;
+    };
 }
 
-pub const Not = struct {
-    validator: *const v.Validator,
+pub fn _and(comptime validators: anytype) And(@TypeOf(validators)) {
+    return comptime .{ .validators = validators };
+}
 
-    pub fn call(self: @This(), comptime D: type, data: D) bool {
-        return !self.validator.call(D, data);
-    }
-};
+pub fn Or(comptime T: type) type {
+    return comptime struct {
+        validators: T,
 
-pub fn _not(validator: anytype) v.Validator {
-    const ml = v.Validator{ ._not = Not{ .validator = @constCast(validator) } };
-    return ml;
+        pub fn call(comptime self: @This(), data: anytype) bool {
+            inline for (self.validators) |validator| {
+                if (validator.call(data)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    };
+}
+
+pub fn _or(comptime validators: anytype) Or(@TypeOf(validators)) {
+    return comptime .{ .validators = validators };
+}
+
+pub fn XOr(comptime T: type) type {
+    return comptime struct {
+        validators: T,
+
+        pub fn call(comptime self: @This(), data: anytype) bool {
+            var valid = false;
+            inline for (self.validators) |validator| {
+                if (valid) {
+                    if (validator.call(data)) {
+                        return false;
+                    }
+                } else {
+                    valid = validator.call(data);
+                }
+            }
+            return valid;
+        }
+    };
+}
+
+pub fn _xor(comptime validators: anytype) XOr(@TypeOf(validators)) {
+    return comptime .{ .validators = validators };
+}
+
+pub fn Not(comptime T: type) type {
+    return comptime struct {
+        validator: T,
+
+        pub fn call(comptime self: @This(), data: anytype) bool {
+            return !self.validator.call(data);
+        }
+    };
+}
+
+pub fn _not(comptime validators: anytype) Not(@TypeOf(validators)) {
+    return comptime .{ .validators = validators };
 }

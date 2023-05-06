@@ -2,26 +2,24 @@ const std = @import("std");
 const testing = std.testing;
 const slice = @import("slice.zig");
 const scalar = @import("scalar.zig");
-const Validator = @import("validator.zig").Validator;
 const combinator = @import("combinator.zig");
 
-pub fn validate(comptime D: type, comptime v: anytype, d: D) bool {
+pub fn validate(comptime v: anytype, d: anytype) bool {
     comptime var vt = @typeInfo(@TypeOf(v));
     var valid = true;
 
     switch (vt) {
         .Struct => {
-            comptime var fds = fields(@TypeOf(v));
-
-            inline for (fds) |field| {
-                const data = @field(d, field);
+            inline for (vt.Struct.fields) |field| {
+                const fName = field.name;
+                const data = @field(d, fName);
                 comptime var dt = @TypeOf(data);
                 comptime var ti = @typeInfo(dt);
                 if (ti == .Struct) {
-                    valid = valid and validate(dt, @field(v, field), data);
+                    valid = valid and validate(@field(v, fName), data);
                     continue;
                 }
-                const fieldValid = @field(v, field).call(dt, data);
+                const fieldValid = @field(v, fName).call(data);
                 valid = valid and fieldValid;
             }
             return valid;
@@ -31,44 +29,32 @@ pub fn validate(comptime D: type, comptime v: anytype, d: D) bool {
 }
 
 test "validate example" {
-    comptime var ValidateData = struct { a: *const Validator, b: *const Validator, c: struct {
-        d: *const Validator,
-    } };
+    comptime var ValidateData = .{
+        .a = combinator._or(.{ scalar.equals(2), scalar.equals(6) }),
+        .b = combinator._and(.{ scalar.min(3), scalar.max(7.2) }),
+        .c = .{
+            .d = scalar.equals(true),
+            .e = slice.min_length(3),
+        },
+    };
 
-    comptime var vd = ValidateData{ .a = &slice.regex_match("ao.*"), .b = &combinator._and(&.{ &scalar.min(u8, 3), &scalar.max(u8, 7) }), .c = .{
-        .d = &combinator._or(&.{ &slice.min_length(3), &slice.equals(&[_]u32{ 1, 2 }) }),
-    } };
+    const Data = struct {
+        a: u8,
+        b: f64,
+        c: struct {
+            d: bool,
+            e: []const u8,
+        },
+    };
 
-    comptime var Data = struct { a: [:0]const u8, b: u8, c: struct {
-        d: []const u32,
-        e: []const f32,
-    } };
+    const d = Data{
+        .a = 2,
+        .b = 6.8,
+        .c = .{
+            .d = true,
+            .e = "abc",
+        },
+    };
 
-    const d = Data{ .a = "aoeu", .b = 4, .c = .{
-        .d = &[_]u32{ 1, 2 },
-        .e = &[_]f32{ 1, 2 },
-    } };
-    const d2 = Data{ .a = "aolrcoeu", .b = 3, .c = .{
-        .d = &[_]u32{1},
-        .e = &[_]f32{1},
-    } };
-
-    try testing.expect(validate(Data, vd, d) == true);
-    try testing.expect(validate(Data, vd, d2) == false);
-}
-
-fn fields(comptime T: type) [][]const u8 {
-    const len = comptime @typeInfo(T).Struct.fields.len;
-
-    comptime var names: [len][]const u8 = .{};
-
-    comptime {
-        var i = 0;
-        const vtdInfo = @typeInfo(T).Struct.fields;
-        for (vtdInfo) |field| {
-            names[i] = field.name;
-            i += 1;
-        }
-    }
-    return &names;
+    try testing.expect(validate(ValidateData, d) == true);
 }
