@@ -30,14 +30,14 @@ pub fn Equals(comptime T: type) type {
     return comptime struct {
         value: T,
         pub fn call(comptime self: @This(), val: anytype) bool {
-            if (self.data.len != val.len) {
+            if (self.value.len != val.len) {
                 return false;
             }
 
             var i: u32 = 0;
 
-            while (i < self.data.len) : (i += 1) {
-                if (self.data[i] != val[i]) return false;
+            while (i < self.value.len) : (i += 1) {
+                if (self.value[i] != val[i]) return false;
             }
 
             return true;
