@@ -1,9 +1,9 @@
 const std = @import("std");
 const testing = std.testing;
-const slice = @import("slice.zig");
-const scalar = @import("scalar.zig");
-const combinator = @import("combinator.zig");
-const log = @import("log.zig");
+pub const slice = @import("slice.zig");
+pub const scalar = @import("scalar.zig");
+pub const combinator = @import("combinator.zig");
+pub const log = @import("log.zig");
 
 pub fn validate(comptime v: anytype, d: anytype) bool {
     comptime var vt = @typeInfo(@TypeOf(v));
