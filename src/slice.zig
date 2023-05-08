@@ -49,6 +49,52 @@ pub fn equals(comptime val: anytype) Equals(@TypeOf(val)) {
     return comptime .{ .value = val };
 }
 
+pub fn BeginsWith(comptime T: type) type {
+    return comptime struct {
+        value: T,
+        pub fn call(comptime self: @This(), val: anytype) bool {
+            if (val.len < self.value.len) {
+                return false;
+            }
+
+            var i: u32 = 0;
+
+            while (i < self.value.len) : (i += 1) {
+                if (self.value[i] != val[i]) return false;
+            }
+
+            return true;
+        }
+    };
+}
+
+pub fn begins_with(comptime val: anytype) BeginsWith(@TypeOf(val)) {
+    return comptime .{ .value = val };
+}
+
+pub fn EndsWith(comptime T: type) type {
+    return comptime struct {
+        value: T,
+        pub fn call(comptime self: @This(), val: anytype) bool {
+            if (val.len < self.value.len) {
+                return false;
+            }
+
+            var i: u32 = 0;
+
+            while (i < self.value.len) : (i += 1) {
+                if (self.value[i] != val[val.len - i - 1]) return false;
+            }
+
+            return true;
+        }
+    };
+}
+
+pub fn ends_with(comptime val: anytype) BeginsWith(@TypeOf(val)) {
+    return comptime .{ .value = val };
+}
+
 pub fn RegexMatch(comptime T: type) type {
     return comptime struct {
         value: T,
