@@ -73,6 +73,6 @@ pub fn Not(comptime T: type) type {
     };
 }
 
-pub fn _not(comptime validators: anytype) Not(@TypeOf(validators)) {
-    return comptime .{ .validators = validators };
+pub fn _not(comptime validator: anytype) Not(@TypeOf(validator)) {
+    return comptime .{ .validator = validator };
 }
