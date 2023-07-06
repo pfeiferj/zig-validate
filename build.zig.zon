@@ -1,0 +1,11 @@
+.{
+    .name = "validate",
+    .version = "0.0.1",
+
+    .dependencies = .{
+        .regex = .{
+            .url = "https://github.com/pfeiferj/zig-regex/archive/refs/tags/v0.1.0.tar.gz",
+            .hash = "1220edc5070841c756421a8d46fa333c6616123deb7e277ccded462182b8f12a565b",
+        }
+    }
+}

@@ -1,78 +1,72 @@
 const std = @import("std");
 const testing = std.testing;
 
-pub fn And(comptime T: type) type {
-    return comptime struct {
-        validators: T,
+pub fn And(comptime a: anytype, comptime b: anytype) type {
+    return struct {
+        const Self = @This();
+        a: a,
+        b: b,
+        pub fn init() Self {
+            return Self{
+                .a = a.init(),
+                .b = b.init(),
+            };
+        }
 
-        pub fn call(comptime self: @This(), data: anytype) bool {
-            inline for (self.validators) |validator| {
-                if (!validator.call(data)) {
-                    return false;
-                }
-            }
-            return true;
+        pub fn validate(comptime self: @This(), comptime T: type, value: T) bool {
+            return self.a.validate(T, value) and self.b.validate(T, value);
         }
     };
 }
 
-pub fn _and(comptime validators: anytype) And(@TypeOf(validators)) {
-    return comptime .{ .validators = validators };
-}
+pub fn Or(comptime a: anytype, comptime b: anytype) type {
+    return struct {
+        const Self = @This();
+        a: a,
+        b: b,
+        pub fn init() Self {
+            return Self{
+                .a = a.init(),
+                .b = b.init(),
+            };
+        }
 
-pub fn Or(comptime T: type) type {
-    return comptime struct {
-        validators: T,
-
-        pub fn call(comptime self: @This(), data: anytype) bool {
-            inline for (self.validators) |validator| {
-                if (validator.call(data)) {
-                    return true;
-                }
-            }
-            return false;
+        pub fn validate(comptime self: @This(), comptime T: type, value: T) bool {
+            return self.a.validate(T, value) or self.b.validate(T, value);
         }
     };
 }
 
-pub fn _or(comptime validators: anytype) Or(@TypeOf(validators)) {
-    return comptime .{ .validators = validators };
-}
+pub fn XOr(comptime a: anytype, comptime b: anytype) type {
+    return struct {
+        const Self = @This();
+        a: a,
+        b: b,
+        pub fn init() Self {
+            return Self{
+                .a = a.init(),
+                .b = b.init(),
+            };
+        }
 
-pub fn XOr(comptime T: type) type {
-    return comptime struct {
-        validators: T,
-
-        pub fn call(comptime self: @This(), data: anytype) bool {
-            var valid = false;
-            inline for (self.validators) |validator| {
-                if (valid) {
-                    if (validator.call(data)) {
-                        return false;
-                    }
-                } else {
-                    valid = validator.call(data);
-                }
-            }
-            return valid;
+        pub fn validate(comptime self: @This(), comptime T: type, value: T) bool {
+            return self.a.validate(T, value) ^ self.b.validate(T, value);
         }
     };
 }
 
-pub fn _xor(comptime validators: anytype) XOr(@TypeOf(validators)) {
-    return comptime .{ .validators = validators };
-}
+pub fn Not(comptime a: anytype) type {
+    return struct {
+        const Self = @This();
+        a: a,
+        pub fn init() Self {
+            return Self{
+                .a = a.init(),
+            };
+        }
 
-pub fn Not(comptime T: type) type {
-    return comptime struct {
-        validator: T,
-
-        pub fn call(comptime self: @This(), data: anytype) bool {
-            return !self.validator.call(data);
+        pub fn validate(comptime self: @This(), comptime T: type, value: T) bool {
+            return !self.a.validate(T, value);
         }
     };
-}
-
-pub fn _not(comptime validator: anytype) Not(@TypeOf(validator)) {
-    return comptime .{ .validator = validator };
 }

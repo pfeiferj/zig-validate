@@ -5,40 +5,74 @@ pub const scalar = @import("scalar.zig");
 pub const combinator = @import("combinator.zig");
 pub const log = @import("log.zig");
 
-pub fn validate(comptime v: anytype, d: anytype) bool {
-    comptime var vt = @typeInfo(@TypeOf(v));
-    var valid = true;
+fn _Validator(comptime T: type, comptime pos: usize, comptime vdef: anytype) type {
+    const tmp: T = undefined;
+    const fields = @typeInfo(@TypeOf(vdef)).Struct.fields;
+    const field_type = @TypeOf(@field(tmp, fields[pos].name));
+    const validator = @field(vdef, fields[pos].name);
 
-    switch (vt) {
-        .Struct => {
-            inline for (vt.Struct.fields) |field| {
-                const fName = field.name;
-                const data = @field(d, fName);
-                comptime var dt = @TypeOf(data);
-                comptime var ti = @typeInfo(dt);
-                if (ti == .Struct) {
-                    valid = valid and validate(@field(v, fName), data);
-                    continue;
-                }
-                const fieldValid = @field(v, fName).call(data);
-                valid = valid and fieldValid;
+    comptime var v = blk: {
+        const fti = @typeInfo(fields[pos].type);
+        switch (fti) {
+            .Struct => break :blk .{.{ fields[pos].name, Validator(field_type, validator).init() }},
+            else => break :blk .{.{ fields[pos].name, validator.init() }},
+        }
+    };
+
+    const tup = blk: {
+        if (pos + 1 < fields.len) {
+            break :blk v ++ _Validator(T, pos + 1, vdef).init().tup;
+        } else {
+            break :blk v;
+        }
+    };
+
+    return struct {
+        const Self = @This();
+        tup: @TypeOf(tup),
+        pub fn init() Self {
+            return Self{
+                .tup = tup,
+            };
+        }
+    };
+}
+
+pub fn Validator(comptime T: type, comptime vdef: anytype) type {
+    comptime var validators = blk: {
+        const infoT = @typeInfo(@TypeOf(vdef));
+        break :blk switch (infoT) {
+            .Struct => _Validator(T, 0, vdef).init().tup,
+            else => .{},
+        };
+    };
+
+    return struct {
+        const Self = @This();
+        validators: @TypeOf(validators),
+
+        pub fn init() Self {
+            return Self{
+                .validators = validators,
+            };
+        }
+
+        pub fn validate(comptime self: @This(), comptime T2: type, value: T2) bool {
+            var valid = true;
+            inline for (self.validators) |validatorInfo| {
+                const name = validatorInfo[0];
+                const tmp: T2 = undefined;
+                const T3 = @TypeOf(@field(tmp, name));
+                const validator = validatorInfo[1];
+                const next_value = @field(value, name);
+                valid = valid and validator.validate(T3, next_value);
             }
             return valid;
-        },
-        else => return false,
-    }
+        }
+    };
 }
 
 test "validate example" {
-    comptime var ValidateData = .{
-        .a = combinator._or(.{ scalar.equals(2), scalar.equals(6) }),
-        .b = combinator._and(.{ scalar.min(3), scalar.max(7.2) }),
-        .c = .{
-            .d = scalar.equals(true),
-            .e = log.failure(slice.min_length(3), std.log.err, "String must be at least 3 characters."),
-        },
-    };
-
     const Data = struct {
         a: u8,
         b: f64,
@@ -47,6 +81,13 @@ test "validate example" {
             e: []const u8,
         },
     };
+
+    comptime var dataValidator = Validator(Data, .{ .a = scalar.Equals(2), .b = combinator.And(
+        scalar.Min(6.7),
+        scalar.Max(6.9),
+    ), .c = .{
+        .e = slice.RegexMatch("[a-zA-Z]+"),
+    } }).init();
 
     const d = Data{
         .a = 2,
@@ -57,5 +98,5 @@ test "validate example" {
         },
     };
 
-    try testing.expect(validate(ValidateData, d) == true);
+    try testing.expect(dataValidator.validate(Data, d) == true);
 }

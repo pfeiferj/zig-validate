@@ -1,43 +1,18 @@
-const re = @cImport(@cInclude("re.h"));
+const regex = @import("regex");
 
-pub fn MaxLength(comptime T: type) type {
-    return comptime struct {
-        value: T,
-        pub fn call(comptime self: @This(), data: anytype) bool {
-            return data.len <= self.value;
+pub fn MaxLength(comptime val: anytype) type {
+    return struct {
+        const Self = @This();
+        val: @TypeOf(val),
+        pub fn init() Self {
+            return Self{
+                .val = val,
+            };
         }
-    };
-}
 
-pub fn max_length(max: anytype) MaxLength(@TypeOf(max)) {
-    return comptime .{ .value = max };
-}
-
-pub fn MinLength(comptime T: type) type {
-    return comptime struct {
-        value: T,
-        pub fn call(comptime self: @This(), data: anytype) bool {
-            return data.len >= self.value;
-        }
-    };
-}
-
-pub fn min_length(min: anytype) MinLength(@TypeOf(min)) {
-    return comptime .{ .value = min };
-}
-
-pub fn Equals(comptime T: type) type {
-    return comptime struct {
-        value: T,
-        pub fn call(comptime self: @This(), val: anytype) bool {
-            if (self.value.len != val.len) {
+        pub fn validate(comptime self: @This(), comptime T: type, value: T) bool {
+            if (self.val < value.len) {
                 return false;
-            }
-
-            var i: u32 = 0;
-
-            while (i < self.value.len) : (i += 1) {
-                if (self.value[i] != val[i]) return false;
             }
 
             return true;
@@ -45,22 +20,19 @@ pub fn Equals(comptime T: type) type {
     };
 }
 
-pub fn equals(comptime val: anytype) Equals(@TypeOf(val)) {
-    return comptime .{ .value = val };
-}
+pub fn MinLength(comptime val: anytype) type {
+    return struct {
+        const Self = @This();
+        val: @TypeOf(val),
+        pub fn init() Self {
+            return Self{
+                .val = val,
+            };
+        }
 
-pub fn BeginsWith(comptime T: type) type {
-    return comptime struct {
-        value: T,
-        pub fn call(comptime self: @This(), val: anytype) bool {
-            if (val.len < self.value.len) {
+        pub fn validate(comptime self: @This(), comptime T: type, value: T) bool {
+            if (self.val > value.len) {
                 return false;
-            }
-
-            var i: u32 = 0;
-
-            while (i < self.value.len) : (i += 1) {
-                if (self.value[i] != val[i]) return false;
             }
 
             return true;
@@ -68,22 +40,25 @@ pub fn BeginsWith(comptime T: type) type {
     };
 }
 
-pub fn begins_with(comptime val: anytype) BeginsWith(@TypeOf(val)) {
-    return comptime .{ .value = val };
-}
+pub fn Equals(comptime val: anytype) type {
+    return struct {
+        const Self = @This();
+        val: @TypeOf(val),
+        pub fn init() Self {
+            return Self{
+                .val = val,
+            };
+        }
 
-pub fn EndsWith(comptime T: type) type {
-    return comptime struct {
-        value: T,
-        pub fn call(comptime self: @This(), val: anytype) bool {
-            if (val.len < self.value.len) {
+        pub fn validate(comptime self: @This(), comptime T: type, value: T) bool {
+            if (self.val.len != value.len) {
                 return false;
             }
 
             var i: u32 = 0;
 
-            while (i < self.value.len) : (i += 1) {
-                if (self.value[i] != val[val.len - i - 1]) return false;
+            while (i < self.val.len) : (i += 1) {
+                if (self.val[i] != value[i]) return false;
             }
 
             return true;
@@ -91,24 +66,71 @@ pub fn EndsWith(comptime T: type) type {
     };
 }
 
-pub fn ends_with(comptime val: anytype) BeginsWith(@TypeOf(val)) {
-    return comptime .{ .value = val };
-}
+pub fn BeginsWith(comptime val: anytype) type {
+    return struct {
+        const Self = @This();
+        val: @TypeOf(val),
+        pub fn init() Self {
+            return Self{
+                .val = val,
+            };
+        }
 
-pub fn RegexMatch(comptime T: type) type {
-    return comptime struct {
-        value: T,
-        pub fn call(comptime self: @This(), val: anytype) bool {
-            var c_data = @ptrCast([:0]const u8, val);
+        pub fn validate(comptime self: @This(), comptime T: type, value: T) bool {
+            if (value.len < self.val.len) {
+                return false;
+            }
 
-            var match_length: c_int = 0;
-            var match_idx: isize = re.re_match(self.value, c_data, &match_length);
+            var i: usize = 0;
 
-            return match_idx != -1;
+            while (i < self.val.len) : (i += 1) {
+                if (self.val[i] != value[i]) return false;
+            }
+
+            return true;
         }
     };
 }
 
-pub fn regex_match(comptime expression: anytype) RegexMatch(@TypeOf(expression)) {
-    return comptime .{ .value = expression };
+pub fn EndsWith(comptime val: anytype) type {
+    return struct {
+        const Self = @This();
+        val: @TypeOf(val),
+        pub fn init() Self {
+            return Self{
+                .val = val,
+            };
+        }
+
+        pub fn validate(comptime self: @This(), comptime T: type, value: T) bool {
+            if (value.len < self.val.len) {
+                return false;
+            }
+
+            var i: usize = value.len;
+
+            while (i > 0) : (i -= 1) {
+                if (self.val[i] != value[i]) return false;
+            }
+
+            return true;
+        }
+    };
+}
+
+pub fn RegexMatch(comptime val: []const u8) type {
+    const rex = regex.compile(val);
+    return struct {
+        const Self = @This();
+        rex: rex,
+        pub fn init() Self {
+            return Self{
+                .rex = rex.init(),
+            };
+        }
+
+        pub fn validate(comptime self: @This(), comptime T: type, value: T) bool {
+            return self.rex.matches(value);
+        }
+    };
 }

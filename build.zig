@@ -15,27 +15,15 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    _ = b.addModule("validate", .{
-        .source_file = .{ .path = "src/main.zig" },
-    });
-
-    const lib = b.addStaticLibrary(.{
-        .name = "zig-validate",
-        // In this case the main source file is merely a path, however, in more
-        // complicated build scripts, this could be a generated file.
-        .root_source_file = .{ .path = "src/main.zig" },
+    const regex = b.dependency("regex", .{
         .target = target,
         .optimize = optimize,
     });
 
-    lib.linkLibC();
-    lib.addSystemIncludePath("src");
-    lib.addCSourceFile("src/re.c", &[_][]const u8{"-std=c99"});
-
-    // This declares intent for the library to be installed into the standard
-    // location when the user invokes the "install" step (the default step when
-    // running `zig build`).
-    b.installArtifact(lib);
+    _ = b.addModule("validate", .{
+        .source_file = .{ .path = "src/main.zig" },
+        .dependencies = &.{.{ .name = "regex", .module = regex.module("regex") }},
+    });
 
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
@@ -44,9 +32,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    main_tests.linkLibC();
-    main_tests.addSystemIncludePath("src");
-    main_tests.addCSourceFile("src/re.c", &[_][]const u8{"-std=c99"});
+
+    main_tests.addModule("regex", regex.module("regex"));
 
     const run_main_tests = b.addRunArtifact(main_tests);
 
